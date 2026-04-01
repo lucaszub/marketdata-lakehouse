@@ -21,6 +21,7 @@ x-airflow-common: &airflow-common
     - ./extract.py:/opt/airflow/extract.py
     - ./load.py:/opt/airflow/load.py
     - ./data:/opt/airflow/data
+    - ./marketdata:/opt/airflow/marketdata
   depends_on:
     postgres:
       condition: service_healthy
