@@ -14,9 +14,9 @@ Python · Airflow · dbt · Snowflake · Terraform · Docker · Streamlit
 |:---|:---|:---|
 | 1 | Ingestion locale (extract.py, 19 tickers, CSV) | ✓ |
 | 2 | Snowflake (Terraform + load.py) | ✓ |
-| 3 | Streamlit POC → puis Airflow VPS | 🚀 |
-| 4 | dbt (RAW → ANALYTICS) | ⏳ |
-| 5 | Docker + déploiement VPS complet | ⏳ |
+| 3 | Streamlit POC (app.py, linechart, ticker/période) | ✓ |
+| 4 | Airflow sur VPS + Docker Compose | 🚀 |
+| 5 | dbt (RAW → ANALYTICS) | ⏳ |
 
 ## Commandes clés
 ```bash
