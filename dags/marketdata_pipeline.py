@@ -55,7 +55,7 @@ Ingestion toutes les 15 minutes pour 19 actifs financiers.
         bash_command="""
             echo "=== TRANSFORM START ===" &&
             echo "Timestamp: $(date -u)" &&
-            cd /opt/airflow/marketdata && dbt run --profiles-dir . &&
+            cd /opt/airflow/marketdata && /home/airflow/.local/bin/dbt run --profiles-dir . &&
             echo "=== TRANSFORM END ==="
         """,
         doc_md="Lance dbt pour rafraîchir ANALYTICS (stg_ohlcv, ohlcv_daily, latest_prices).",
