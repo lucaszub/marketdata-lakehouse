@@ -1,55 +1,87 @@
-# CLAUDE.md — marketData-Lakehouse
+# marketData-Lakehouse
 
-## Navigation rapide
-- **Où on en est →** `memory/MEMORY.md` (sprints, prochaine étape)
-- **Skills disponibles →** `.claude/commands/`
-- **Infra Snowflake →** `terraform/`
-- **Dépendances →** `requirements/` (un fichier par service)
+## Projet
+Pipeline de données financières de bout en bout.
+Collecte des données OHLCV toutes les 15 minutes pour 19 actifs (actions, ETF, indices, matières premières, FX)
+via yfinance, les stocke dans Snowflake, et les expose dans un dashboard Streamlit.
+Orchestré par Airflow sur un VPS, infrastructure provisionnée via Terraform.
 
-## Stack
-Python · Airflow · dbt · Snowflake · Terraform · Docker · Streamlit
+## Architecture
+
+```
+yfinance (19 tickers)
+    ↓ extract.py  →  data/raw_*.csv
+    ↓ load.py     →  Snowflake RAW.OHLCV
+    ↓ dbt         →  Snowflake ANALYTICS  (Sprint 5)
+    ↓ app.py      →  Streamlit (Azure Container Apps)
+
+Orchestration : Airflow sur VPS Hostinger (Docker Compose)
+IaC           : Terraform (Snowflake + Azure)
+Déploiement   : Ansible (VPS) + scripts/ (ACR + deploy)
+```
 
 ## Sprints
+
 | Sprint | Scope | Statut |
 |:---|:---|:---|
 | 1 | Ingestion locale (extract.py, 19 tickers, CSV) | ✓ |
 | 2 | Snowflake (Terraform + load.py) | ✓ |
-| 3 | Streamlit POC (app.py, linechart, ticker/période) | ✓ |
-| 4 | Airflow sur VPS + Docker Compose | 🚀 |
+| 3 | Streamlit sur Azure Container Apps | ✓ |
+| 4 | Airflow sur VPS Hostinger | 🚀 |
 | 5 | dbt (RAW → ANALYTICS) | ⏳ |
 
+## Navigation par dossier
+
+| Dossier | Rôle | Contexte détaillé |
+|:---|:---|:---|
+| `terraform/` | IaC Snowflake + Azure | `terraform/CLAUDE.md` |
+| `ansible/` | Provisioning VPS | `ansible/CLAUDE.md` |
+| `dags/` | DAG Airflow | `dags/CLAUDE.md` |
+| `docker/` | Images Docker | `docker/CLAUDE.md` |
+| `scripts/` | Scripts de déploiement | `scripts/CLAUDE.md` |
+| `requirements/` | Dépendances par service | `requirements/CLAUDE.md` |
+
+## Skills disponibles
+
+| Skill | Action |
+|:---|:---|
+| `/extract` | Lancer l'ingestion yfinance |
+| `/load` | Charger le dernier CSV dans Snowflake |
+| `/snowflake` | Requêter Snowflake (snow CLI) |
+| `/deploy` | Déployer sur le VPS (git push + docker compose) |
+
 ## Commandes clés
+
 ```bash
 source venv/bin/activate
-python extract.py                        # ingestion → data/raw_*.csv
-python load.py                           # CSV → Snowflake RAW.OHLCV
-python validate_tickers.py              # validation tickers (one-shot)
-cd terraform && terraform plan           # preview infra Snowflake
-cd terraform && terraform apply          # appliquer infra Snowflake
+python extract.py                  # ingestion → data/raw_*.csv
+python load.py                     # CSV → Snowflake RAW.OHLCV
+python validate_tickers.py         # validation one-shot des 19 tickers
+./scripts/deploy.sh                # git push + deploy VPS
+./scripts/push_to_acr.sh           # push image Streamlit → Azure ACR
 ```
 
-## Skills (.claude/commands/)
-- `/snowflake` — requêter Snowflake (lister tables, compter lignes, SQL custom)
-- `/extract` — lancer et monitorer l'ingestion yfinance
-- `/load` — charger le dernier CSV dans Snowflake
-
 ## Conventions
+
 - Dépendances : toujours mettre à jour `requirements/<service>.txt` avant d'installer
 - Secrets : `.env` uniquement, jamais dans le code
-- Logs : `logging` module, pas de `print`
-- Code : minimal, sans commentaires superflus, logs en anglais
+- Logs : module `logging`, pas de `print`, en anglais
+- Code : minimal, sans commentaires superflus
 
-## Fichiers clés
+## Fichiers racine
+
 | Fichier | Rôle |
 |:---|:---|
 | `extract.py` | Ingestion yfinance → CSV |
-| `load.py` | CSV → Snowflake |
-| `validate_tickers.py` | Validation one-shot des tickers |
-| `terraform/main.tf` | Infrastructure Snowflake |
-| `.env` | Credentials (ne pas toucher via Claude) |
+| `load.py` | CSV → Snowflake RAW.OHLCV |
+| `app.py` | Dashboard Streamlit |
+| `validate_tickers.py` | Validation one-shot (19 tickers) |
+| `docker-compose.yml` | Stack Airflow (locale + VPS) |
+| `.env` | Credentials (ne pas modifier via Claude) |
 | `.env.example` | Template public |
 
-## Actifs (19 tickers actifs)
+## Actifs (19 tickers)
+
 | yfinance | Nom | Devise |
 |:---|:---|:---|
 | XEON.DE | Xtrackers EUR Overnight ETF | EUR |
@@ -72,8 +104,4 @@ cd terraform && terraform apply          # appliquer infra Snowflake
 | CAP.PA | Capgemini | EUR |
 | ACN | Accenture | USD |
 
-> FR10Y / FR02Y : en suspens (non disponibles via yfinance)
-
-## Décisions en attente
-- **FR10Y/FR02Y** : API Banque de France vs exclure vs remplacer par ^TNX/^IRX → avant Sprint 4
-- **Streamlit hébergement** : VPS Hostinger vs Streamlit Cloud → à décider Sprint 3
+> FR10Y / FR02Y : non disponibles via yfinance — décision en attente avant Sprint 5

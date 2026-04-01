@@ -1,0 +1,12 @@
+---
+- name: Setup VPS for Airflow
+  hosts: vps
+  become: true
+
+  vars:
+    deploy_user: deploy
+    repo_url: https://github.com/lucaszub/marketdata-lakehouse.git
+    app_dir: /home/deploy/marketdata-lakehouse
+
+  roles:
+    - airflow

@@ -1,0 +1,86 @@
+---
+- name: Install required packages
+  apt:
+    name:
+      - ca-certificates
+      - curl
+      - gnupg
+      - git
+    state: present
+    update_cache: false
+
+- name: Add Docker GPG key
+  shell: |
+    install -m 0755 -d /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg -o /etc/apt/keyrings/docker.asc
+    chmod a+r /etc/apt/keyrings/docker.asc
+  args:
+    creates: /etc/apt/keyrings/docker.asc
+
+- name: Add Docker apt repository
+  shell: |
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
+    https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable" \
+    > /etc/apt/sources.list.d/docker.list
+  args:
+    creates: /etc/apt/sources.list.d/docker.list
+
+- name: Install Docker
+  apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+    update_cache: true
+
+- name: Enable and start Docker
+  systemd:
+    name: docker
+    enabled: true
+    state: started
+
+- name: Create deploy user
+  user:
+    name: "{{ deploy_user }}"
+    groups: docker
+    shell: /bin/bash
+    create_home: true
+
+- name: Copy root SSH authorized_keys to deploy user
+  authorized_key:
+    user: "{{ deploy_user }}"
+    state: present
+    key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+
+- name: Clone repo
+  git:
+    repo: "{{ repo_url }}"
+    dest: "{{ app_dir }}"
+    version: main
+    force: true
+  become_user: "{{ deploy_user }}"
+
+- name: Create data directory
+  file:
+    path: "{{ app_dir }}/data"
+    state: directory
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: "0755"
+
+- name: Copy .env to VPS
+  copy:
+    src: ../../.env
+    dest: "{{ app_dir }}/.env"
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: "0600"
+
+- name: Start Airflow with Docker Compose
+  community.docker.docker_compose_v2:
+    project_src: "{{ app_dir }}"
+    state: present
+  become_user: "{{ deploy_user }}"
