@@ -22,4 +22,12 @@ docker tag "$IMAGE_NAME" "${ACR_SERVER}/${IMAGE_NAME}:latest"
 echo "==> Pushing..."
 docker push "${ACR_SERVER}/${IMAGE_NAME}:latest"
 
+echo "==> Deploying new revision on Azure Container Apps..."
+az containerapp update \
+  --name ca-marketdata-streamlit \
+  --resource-group rg-marketdata \
+  --image "${ACR_SERVER}/${IMAGE_NAME}:latest" \
+  --revision-suffix "$(date +%s)" \
+  --output none
+
 echo "==> Done: ${ACR_SERVER}/${IMAGE_NAME}:latest"
