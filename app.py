@@ -1,4 +1,5 @@
 import os
+from datetime import date
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -24,15 +25,21 @@ st.markdown("""
         background-color: #1e222d !important;
         border: 1px solid #434651 !important;
         border-radius: 6px !important;
-        color: #d1d4dc !important;
     }
-    div[data-baseweb="select"] > div:hover {
-        border-color: #787b86 !important;
+    div[data-baseweb="select"] > div:hover { border-color: #787b86 !important; }
+    div[data-baseweb="select"] span { color: #d1d4dc !important; font-weight: 600 !important; }
+    div[data-testid="stHorizontalBlock"] div[role="radiogroup"] label {
+        background-color: #1e222d;
+        border: 1px solid #2a2e39;
+        border-radius: 4px;
+        padding: 2px 10px;
+        color: #787b86;
+        font-size: 0.8rem;
     }
-    div[data-baseweb="select"] span {
-        color: #d1d4dc !important;
-        font-size: 0.95rem !important;
-        font-weight: 600 !important;
+    div[data-testid="stHorizontalBlock"] div[role="radiogroup"] label[data-checked="true"] {
+        background-color: #2962ff;
+        border-color: #2962ff;
+        color: #ffffff;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -59,10 +66,11 @@ TICKER_META = {
     "ACN":       {"name": "Accenture plc",                         "type": "Stock",     "exchange": "NYSE"},
 }
 
+PERIODS = {"1D": 1, "5D": 5, "1M": 30, "3M": 90, "6M": 180, "YTD": -1, "1Y": 365, "2Y": 730}
 
-@st.cache_data(ttl=900)
-def load_data() -> pd.DataFrame:
-    conn = snowflake.connector.connect(
+
+def get_conn():
+    return snowflake.connector.connect(
         account=os.getenv("SNOWFLAKE_ACCOUNT"),
         user=os.getenv("SNOWFLAKE_USER"),
         password=os.getenv("SNOWFLAKE_PASSWORD"),
@@ -71,33 +79,66 @@ def load_data() -> pd.DataFrame:
         schema="ANALYTICS",
         role=os.getenv("SNOWFLAKE_ROLE"),
     )
+
+
+@st.cache_data(ttl=900)
+def load_intraday() -> pd.DataFrame:
+    conn = get_conn()
     df = pd.read_sql(
         "SELECT TIMESTAMP, TICKER, OPEN, HIGH, LOW, CLOSE, VOLUME, CURRENCY "
-        "FROM MARKETDATA.ANALYTICS.STG_OHLCV ORDER BY TIMESTAMP",
-        conn,
-    )
+        "FROM MARKETDATA.ANALYTICS.STG_OHLCV ORDER BY TIMESTAMP", conn)
     conn.close()
     df["TIMESTAMP"] = pd.to_datetime(df["TIMESTAMP"])
     return df
 
 
-df = load_data()
-tickers = sorted(df["TICKER"].unique())
+@st.cache_data(ttl=900)
+def load_daily() -> pd.DataFrame:
+    conn = get_conn()
+    df = pd.read_sql(
+        "SELECT DATE, TICKER, OPEN, HIGH, LOW, CLOSE, VOLUME, CURRENCY "
+        "FROM MARKETDATA.ANALYTICS.OHLCV_DAILY ORDER BY DATE", conn)
+    conn.close()
+    df["DATE"] = pd.to_datetime(df["DATE"])
+    return df
 
-ticker = st.selectbox("", tickers, label_visibility="collapsed")
 
-data = df[df["TICKER"] == ticker].copy()
+intraday = load_intraday()
+daily = load_daily()
+tickers = sorted(daily["TICKER"].unique())
 
-if data.empty:
-    st.warning("Pas de données disponibles.")
+st.markdown("<h2 style='color:#d1d4dc; margin-bottom:0.5rem'>📈 Market Data</h2>", unsafe_allow_html=True)
+
+col_ticker, col_period = st.columns([3, 7])
+with col_ticker:
+    ticker = st.selectbox("", tickers, label_visibility="collapsed")
+with col_period:
+    period = st.radio("", list(PERIODS.keys()), horizontal=True, index=2, label_visibility="collapsed")
+
+# Choisir la source selon la période
+if period in ("1D", "5D"):
+    src = intraday[intraday["TICKER"] == ticker].copy()
+    x_col = "TIMESTAMP"
+else:
+    src = daily[daily["TICKER"] == ticker].copy()
+    x_col = "DATE"
+
+# Filtrer selon la période
+days = PERIODS[period]
+if period == "YTD":
+    src = src[src[x_col] >= pd.Timestamp(date.today().year, 1, 1)]
+elif days > 0:
+    src = src[src[x_col] >= src[x_col].max() - pd.Timedelta(days=days)]
+
+if src.empty:
+    st.warning("Pas de données pour cette période.")
     st.stop()
 
-currency = data["CURRENCY"].iloc[0]
+currency = src["CURRENCY"].iloc[0]
 meta = TICKER_META.get(ticker, {"name": ticker, "type": "", "exchange": ""})
-last = data.iloc[-1]
-first = data.iloc[0]
-change = last["CLOSE"] - first["CLOSE"]
-change_pct = (change / first["CLOSE"]) * 100
+last = src.iloc[-1]
+change = last["CLOSE"] - src.iloc[0]["CLOSE"]
+change_pct = (change / src.iloc[0]["CLOSE"]) * 100
 color = "#26a69a" if change >= 0 else "#ef5350"
 
 st.markdown(f"""
@@ -124,35 +165,25 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 fig = go.Figure(go.Candlestick(
-    x=data["TIMESTAMP"],
-    open=data["OPEN"],
-    high=data["HIGH"],
-    low=data["LOW"],
-    close=data["CLOSE"],
-    increasing_line_color="#26a69a",
-    decreasing_line_color="#ef5350",
-    increasing_fillcolor="#26a69a",
-    decreasing_fillcolor="#ef5350",
+    x=src[x_col],
+    open=src["OPEN"], high=src["HIGH"], low=src["LOW"], close=src["CLOSE"],
+    increasing_line_color="#26a69a", decreasing_line_color="#ef5350",
+    increasing_fillcolor="#26a69a", decreasing_fillcolor="#ef5350",
     name=ticker,
 ))
-
 fig.update_layout(
-    paper_bgcolor="#131722",
-    plot_bgcolor="#131722",
+    paper_bgcolor="#131722", plot_bgcolor="#131722",
     font=dict(color="#787b86", size=11),
     xaxis=dict(gridcolor="#1e222d", linecolor="#2a2e39", rangeslider=dict(visible=False)),
     yaxis=dict(gridcolor="#1e222d", linecolor="#2a2e39", side="right"),
     margin=dict(l=0, r=60, t=10, b=20),
-    hovermode="x unified",
-    hoverlabel=dict(bgcolor="#1e222d", font_color="#d1d4dc"),
-    showlegend=False,
-    height=500,
+    hovermode="x unified", hoverlabel=dict(bgcolor="#1e222d", font_color="#d1d4dc"),
+    showlegend=False, height=500,
 )
-
 st.plotly_chart(fig, use_container_width=True)
 
 c1, c2, c3, c4 = st.columns(4)
 c1.metric("Dernier", f"{last['CLOSE']:.2f} {currency}")
 c2.metric("Variation", f"{change_pct:+.2f}%", delta=f"{change:+.2f}")
-c3.metric("Plus haut", f"{data['HIGH'].max():.2f}")
-c4.metric("Plus bas", f"{data['LOW'].min():.2f}")
+c3.metric("Plus haut", f"{src['HIGH'].max():.2f}")
+c4.metric("Plus bas", f"{src['LOW'].min():.2f}")
