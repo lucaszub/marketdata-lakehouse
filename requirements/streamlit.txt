@@ -1,3 +1,4 @@
-# À compléter au Sprint 4
 streamlit
 plotly
+snowflake-connector-python[pandas]
+python-dotenv
