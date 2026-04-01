@@ -30,8 +30,8 @@ def load():
 
     df = pd.read_csv(csv_path)
     df.columns = [c.upper() for c in df.columns]
-    df["TIMESTAMP"] = pd.to_datetime(df["TIMESTAMP"], utc=True).dt.tz_convert(None)
-    df["INGESTED_AT"] = pd.to_datetime(df["INGESTED_AT"], utc=True).dt.tz_convert(None)
+    df["TIMESTAMP"] = pd.to_datetime(df["TIMESTAMP"], utc=True).dt.strftime('%Y-%m-%d %H:%M:%S')
+    df["INGESTED_AT"] = pd.to_datetime(df["INGESTED_AT"], utc=True).dt.strftime('%Y-%m-%d %H:%M:%S')
     log.info(f"{len(df)} lignes à charger")
 
     conn = snowflake.connector.connect(

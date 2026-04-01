@@ -7,3 +7,4 @@ terraform/.terraform.lock.hcl
 terraform/terraform.tfstate*
 ansible/inventory.ini
 .claude/settings.local.json
+image.png

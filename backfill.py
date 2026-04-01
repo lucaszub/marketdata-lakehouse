@@ -28,10 +28,10 @@ def fetch_history(ticker: str, currency: str) -> pd.DataFrame | None:
         return None
     df = df.reset_index()[["Date", "Open", "High", "Low", "Close", "Volume"]]
     df.columns = ["TIMESTAMP", "OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"]
-    df["TIMESTAMP"] = pd.to_datetime(df["TIMESTAMP"], utc=True).dt.tz_convert(None)
+    df["TIMESTAMP"] = pd.to_datetime(df["TIMESTAMP"], utc=True).dt.strftime('%Y-%m-%d %H:%M:%S')
     df["TICKER"] = ticker
     df["CURRENCY"] = currency
-    df["INGESTED_AT"] = pd.Timestamp.utcnow().replace(tzinfo=None)
+    df["INGESTED_AT"] = pd.Timestamp.utcnow().strftime('%Y-%m-%d %H:%M:%S')
     log.info("[OK]   %-12s  %d lignes", ticker, len(df))
     return df
 

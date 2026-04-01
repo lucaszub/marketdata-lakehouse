@@ -24,3 +24,5 @@ scp .env deploy@YOUR_VPS_IP:/home/deploy/marketdata-lakehouse/.env
 # Relancer Airflow avec le .env
 ssh deploy@YOUR_VPS_IP "cd marketdata-lakehouse && docker compose up -d"
 ```
+
+
