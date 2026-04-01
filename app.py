@@ -85,6 +85,28 @@ def load_latest() -> pd.DataFrame:
     return df
 
 
+TICKER_META = {
+    "XEON.DE":   {"name": "Xtrackers EUR Overnight Rate Swap ETF", "type": "ETF",        "exchange": "XETRA"},
+    "^TNX":      {"name": "US 10-Year Treasury Yield",             "type": "Bond",       "exchange": "CBOE"},
+    "^IRX":      {"name": "US 13-Week Treasury Bill",              "type": "Bond",       "exchange": "CBOE"},
+    "BZ=F":      {"name": "Brent Crude Oil",                       "type": "Commodity",  "exchange": "NYMEX"},
+    "^STOXX":    {"name": "STOXX Europe 600",                      "type": "Index",      "exchange": "STOXX"},
+    "^STOXX50E": {"name": "Euro Stoxx 50",                         "type": "Index",      "exchange": "STOXX"},
+    "SPY":       {"name": "SPDR S&P 500 ETF Trust",                "type": "ETF",        "exchange": "NYSE"},
+    "QQQ":       {"name": "Invesco QQQ Trust (Nasdaq 100)",        "type": "ETF",        "exchange": "NASDAQ"},
+    "NVDA":      {"name": "NVIDIA Corporation",                    "type": "Stock",      "exchange": "NASDAQ"},
+    "MSFT":      {"name": "Microsoft Corporation",                 "type": "Stock",      "exchange": "NASDAQ"},
+    "IWDA.AS":   {"name": "iShares Core MSCI World ETF",           "type": "ETF",        "exchange": "Euronext"},
+    "IBM":       {"name": "IBM Corporation",                       "type": "Stock",      "exchange": "NYSE"},
+    "GOOGL":     {"name": "Alphabet Inc.",                         "type": "Stock",      "exchange": "NASDAQ"},
+    "GIB-A.TO":  {"name": "CGI Inc.",                              "type": "Stock",      "exchange": "TSX"},
+    "EURUSD=X":  {"name": "EUR/USD",                               "type": "Forex",      "exchange": "FX"},
+    "EEM":       {"name": "iShares MSCI Emerging Markets ETF",     "type": "ETF",        "exchange": "NYSE"},
+    "CW8.PA":    {"name": "Amundi MSCI World ETF",                 "type": "ETF",        "exchange": "Euronext"},
+    "CAP.PA":    {"name": "Capgemini SE",                          "type": "Stock",      "exchange": "Euronext"},
+    "ACN":       {"name": "Accenture plc",                         "type": "Stock",      "exchange": "NYSE"},
+}
+
 PERIODS = {
     "1D": 1,
     "5D": 5,
@@ -112,6 +134,7 @@ with col_period:
 
 ticker_latest = latest[latest["TICKER"] == ticker]
 currency = ticker_latest["CURRENCY"].iloc[0] if not ticker_latest.empty else ""
+meta = TICKER_META.get(ticker, {"name": ticker, "type": "", "exchange": ""})
 
 today = date.today()
 
@@ -140,12 +163,31 @@ change = last_price - prev_price
 change_pct = (change / prev_price) * 100
 color = "#26a69a" if change >= 0 else "#ef5350"
 
+last_row = df.iloc[-1]
+
 st.markdown(
-    f"<h2 style='margin:0; color:#d1d4dc'>{ticker} "
-    f"<span style='font-size:1.1rem; color:{color}'>"
-    f"{last_price:.2f} {currency} "
-    f"{'▲' if change >= 0 else '▼'} {abs(change):.2f} ({abs(change_pct):.2f}%)"
-    f"</span></h2>",
+    f"""
+    <div style='margin-bottom:4px'>
+        <span style='font-size:1.5rem; font-weight:700; color:#d1d4dc'>{ticker}</span>
+        <span style='font-size:0.85rem; color:#787b86; margin-left:10px'>{meta['name']}</span>
+        <span style='font-size:0.75rem; color:#4c525e; margin-left:8px; border:1px solid #2a2e39; border-radius:3px; padding:1px 6px'>{meta['type']}</span>
+        <span style='font-size:0.75rem; color:#4c525e; margin-left:4px; border:1px solid #2a2e39; border-radius:3px; padding:1px 6px'>{meta['exchange']}</span>
+        <span style='font-size:0.75rem; color:#4c525e; margin-left:4px; border:1px solid #2a2e39; border-radius:3px; padding:1px 6px'>{currency}</span>
+    </div>
+    <div style='margin-bottom:8px'>
+        <span style='font-size:1.8rem; font-weight:600; color:#d1d4dc'>{last_price:.2f}</span>
+        <span style='font-size:1rem; color:{color}; margin-left:8px'>
+            {'▲' if change >= 0 else '▼'} {abs(change):.2f} ({abs(change_pct):.2f}%)
+        </span>
+    </div>
+    <div style='font-size:0.78rem; color:#787b86'>
+        O&nbsp;<span style='color:#d1d4dc'>{last_row['OPEN']:.2f}</span>&nbsp;&nbsp;
+        H&nbsp;<span style='color:#26a69a'>{last_row['HIGH']:.2f}</span>&nbsp;&nbsp;
+        L&nbsp;<span style='color:#ef5350'>{last_row['LOW']:.2f}</span>&nbsp;&nbsp;
+        C&nbsp;<span style='color:#d1d4dc'>{last_row['CLOSE']:.2f}</span>&nbsp;&nbsp;
+        Vol&nbsp;<span style='color:#d1d4dc'>{last_row['VOLUME']:,.0f}</span>
+    </div>
+    """,
     unsafe_allow_html=True,
 )
 
