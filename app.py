@@ -85,7 +85,7 @@ def get_conn():
 def load_intraday() -> pd.DataFrame:
     conn = get_conn()
     df = pd.read_sql(
-        "SELECT TIMESTAMP, TICKER, OPEN, HIGH, LOW, CLOSE, VOLUME, CURRENCY "
+        "SELECT TIMESTAMP, TICKER, OPEN, HIGH, LOW, CLOSE, CAST(VOLUME AS FLOAT) AS VOLUME, CURRENCY "
         "FROM MARKETDATA.ANALYTICS.STG_OHLCV ORDER BY TIMESTAMP", conn)
     conn.close()
     df["TIMESTAMP"] = pd.to_datetime(df["TIMESTAMP"])
@@ -96,7 +96,7 @@ def load_intraday() -> pd.DataFrame:
 def load_daily() -> pd.DataFrame:
     conn = get_conn()
     df = pd.read_sql(
-        "SELECT DATE, TICKER, OPEN, HIGH, LOW, CLOSE, VOLUME, CURRENCY "
+        "SELECT DATE, TICKER, OPEN, HIGH, LOW, CLOSE, CAST(VOLUME AS FLOAT) AS VOLUME, CURRENCY "
         "FROM MARKETDATA.ANALYTICS.OHLCV_DAILY ORDER BY DATE", conn)
     conn.close()
     df["DATE"] = pd.to_datetime(df["DATE"])
