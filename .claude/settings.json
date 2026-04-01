@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"\nimport sys, json\ndata = json.load(sys.stdin)\npath = data.get('tool_input', {}).get('file_path', '')\nprotected = ['.env', 'terraform.tfvars']\nfor p in protected:\n    if path.endswith(p):\n        print(f'Blocked: {path} is protected — edit manually', file=sys.stderr)\n        sys.exit(2)\n\""
+          }
+        ]
+      }
+    ]
+  }
+}
