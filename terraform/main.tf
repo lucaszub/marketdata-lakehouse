@@ -8,10 +8,11 @@ terraform {
 }
 
 provider "snowflake" {
-  account  = var.snowflake_account
-  username = var.snowflake_user
-  password = var.snowflake_password
-  role     = "ACCOUNTADMIN"
+  organization_name = var.snowflake_organization_name
+  account_name      = var.snowflake_account_name
+  user              = var.snowflake_user
+  password          = var.snowflake_password
+  role              = "ACCOUNTADMIN"
 }
 
 # Warehouse — auto-suspend après 60s pour économiser les crédits
