@@ -12,6 +12,7 @@ st.set_page_config(page_title="Market Data", layout="wide", initial_sidebar_stat
 
 st.markdown("""
 <style>
+    header[data-testid="stHeader"] { display: none; }
     .block-container { padding-top: 1.5rem; }
     div[data-testid="metric-container"] {
         background-color: #1e222d;
