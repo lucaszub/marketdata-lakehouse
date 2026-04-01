@@ -1,15 +1,15 @@
-Lance le script d'ingestion yfinance et vérifie le résultat.
+---
+description: Run yfinance ingestion pipeline — fetch OHLCV data for 19 tickers and output CSV
+allowed-tools: Bash, Read
+---
+
+Run the extraction pipeline and verify the output.
 
 ```bash
-cd /home/cgi/marketData-Lakehouse
-source venv/bin/activate
-python extract.py
+source venv/bin/activate && python extract.py
 ```
 
-Après exécution :
-1. Vérifie que le fichier `data/raw_*.csv` a bien été créé
-2. Vérifie le nombre de lignes (attendu ~398)
-3. Vérifie qu'aucun ticker n'est en FAIL dans les logs
-4. Affiche les 3 premières lignes du CSV pour confirmer la structure
-
-Si des tickers sont en FAIL, diagnostique la cause (rate limit yfinance, ticker invalide, réseau).
+Then verify:
+1. A new `data/raw_YYYYMMDD_HHMMSS.csv` file was created
+2. All 19 tickers show `[OK]` in logs — report any `[FAIL]`
+3. Check row count (expected ~380-420 rows depending on market hours)
