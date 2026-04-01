@@ -1,76 +1,79 @@
-# CLAUDE.md — Stockerize Project
+# CLAUDE.md — marketData-Lakehouse
 
-## Contexte du Projet
-Pipeline de données financières end-to-end.
-**Stack cible :** Airflow · dbt · Snowflake · Terraform · Docker · Streamlit
+## Navigation rapide
+- **Où on en est →** `memory/MEMORY.md` (sprints, prochaine étape)
+- **Skills disponibles →** `.claude/commands/`
+- **Infra Snowflake →** `terraform/`
+- **Dépendances →** `requirements/` (un fichier par service)
 
-## Phase Actuelle : Sprint 1 — Ingestion Locale ✓ TERMINÉ
+## Stack
+Python · Airflow · dbt · Snowflake · Terraform · Docker · Streamlit
 
-### Objectifs Sprint 1
-1. ✓ Maîtriser `yfinance` : comprendre ce qu'on peut extraire et ses limites
-2. ✓ Écrire un script d'ingestion robuste pour 19 tickers (+ validation)
-3. ✓ Sortir un fichier CSV propre prêt pour un futur chargement en warehouse
+## Sprints
+| Sprint | Scope | Statut |
+|:---|:---|:---|
+| 1 | Ingestion locale (extract.py, 19 tickers, CSV) | ✓ |
+| 2 | Snowflake (Terraform + load.py) | ✓ |
+| 3 | Streamlit POC → puis Airflow VPS | 🚀 |
+| 4 | dbt (RAW → ANALYTICS) | ⏳ |
+| 5 | Docker + déploiement VPS complet | ⏳ |
 
-### Format de sortie
-- **CSV** — fichier nommé `data/raw_YYYYMMDD_HHMMSS.csv`
-- 8 colonnes : `timestamp, ticker, open, high, low, close, volume, currency, ingested_at`
-- Un fichier par run (pas d'écrasement)
+## Commandes clés
+```bash
+source venv/bin/activate
+python extract.py                        # ingestion → data/raw_*.csv
+python load.py                           # CSV → Snowflake RAW.OHLCV
+python validate_tickers.py              # validation tickers (one-shot)
+cd terraform && terraform plan           # preview infra Snowflake
+cd terraform && terraform apply          # appliquer infra Snowflake
+```
 
-### Actifs cibles (21 symboles)
-Liste issue du watchlist de référence. Colonne "Symbole" = ticker plateforme, colonne "yfinance" = ticker à utiliser dans le code.
+## Skills (.claude/commands/)
+- `/snowflake` — requêter Snowflake (lister tables, compter lignes, SQL custom)
+- `/extract` — lancer et monitorer l'ingestion yfinance
+- `/load` — charger le dernier CSV dans Snowflake
 
-| Symbole | Nom | Catégorie | yfinance ticker |
-|:---|:---|:---|:---|
-| XEON | Xtrackers II EUR Overnight Rate Swap UCITS ETF | ETF Monétaire | XEON.DE |
-| US10Y | Obligations gouvernement américain 10 ans | Taux | ^TNX |
-| US02Y | Obligations gouvernement américain 2 ans | Taux | ^IRX |
-| UKOIL | CFD sur Pétrole brut Brent | Commodité | BZ=F |
-| SXXP | STOXX 600 | Indice | ^STOXX |
-| SX5E | Indice Euro Stoxx 50 | Indice | ^STOXX50E |
-| SPY | State Street SPDR S&P 500 ETF | ETF Actions | SPY |
-| QQQ | Invesco QQQ Trust Series I | ETF Actions | QQQ |
-| NVDA | NVIDIA Corporation | Action | NVDA |
-| MSFT | Microsoft Corporation | Action | MSFT |
-| IWDA | iShares Core MSCI World UCITS ETF | ETF Actions | IWDA.AS |
-| IBM | International Business Machines | Action | IBM |
-| GOOGL | Alphabet Inc (Google) Class A | Action | GOOGL |
-| GIB.A | CGI Inc. Class A | Action | GIB-A.TO |
-| FR10Y | France Obligations gouvernement 10 ans | Taux | À confirmer |
-| FR02Y | France 2 Year Government Bond Yield | Taux | À confirmer |
-| EURUSD | Euro / Dollar Américain | Forex | EURUSD=X |
-| EEM | iShares MSCI Emerging Markets ETF | ETF Actions | EEM |
-| CW8 | Amundi MSCI World Swap UCITS ETF | ETF Actions | CW8.PA |
-| CAP | Capgemini SE | Action | CAP.PA |
-| ACN | Accenture Plc Class A | Action | ACN |
+## Conventions
+- Dépendances : toujours mettre à jour `requirements/<service>.txt` avant d'installer
+- Secrets : `.env` uniquement, jamais dans le code
+- Logs : `logging` module, pas de `print`
+- Code : minimal, sans commentaires superflus, logs en anglais
 
-> **Note :** FR10Y et FR02Y sont inclus dans le watchlist mais leur ingestion est **en suspens** (voir section Décisions en attente).
+## Fichiers clés
+| Fichier | Rôle |
+|:---|:---|
+| `extract.py` | Ingestion yfinance → CSV |
+| `load.py` | CSV → Snowflake |
+| `validate_tickers.py` | Validation one-shot des tickers |
+| `terraform/main.tf` | Infrastructure Snowflake |
+| `.env` | Credentials (ne pas toucher via Claude) |
+| `.env.example` | Template public |
 
-### Contraintes connues
-- yfinance peut être bloqué par Yahoo Finance (rate limit, IP ban) → prévoir retry
-- Fréquence cible finale : toutes les 15 minutes (batch)
-- Budget infra : économiser sans nécessairement utiliser le Free Tier
+## Actifs (19 tickers actifs)
+| yfinance | Nom | Devise |
+|:---|:---|:---|
+| XEON.DE | Xtrackers EUR Overnight ETF | EUR |
+| ^TNX | US 10Y Treasury | USD |
+| ^IRX | US 2Y Treasury | USD |
+| BZ=F | Brent Crude | USD |
+| ^STOXX | STOXX 600 | EUR |
+| ^STOXX50E | Euro Stoxx 50 | EUR |
+| SPY | S&P 500 ETF | USD |
+| QQQ | Nasdaq 100 ETF | USD |
+| NVDA | NVIDIA | USD |
+| MSFT | Microsoft | USD |
+| IWDA.AS | iShares MSCI World | EUR |
+| IBM | IBM | USD |
+| GOOGL | Alphabet | USD |
+| GIB-A.TO | CGI Inc. | CAD |
+| EURUSD=X | EUR/USD | USD |
+| EEM | MSCI Emerging Markets | USD |
+| CW8.PA | Amundi MSCI World | EUR |
+| CAP.PA | Capgemini | EUR |
+| ACN | Accenture | USD |
 
-## Ce qu'on NE fait PAS en Sprint 1
-- Pas de Snowflake, pas de dbt, pas de Terraform, pas de Streamlit
-- Pas de Docker encore (optionnel à la fin du sprint)
-- Pas d'Airflow (le scheduling vient au sprint suivant)
-
-## Conventions de Code
-- Python 3.x, dépendances dans `requirements.txt`
-- Variables d'environnement dans `.env` (jamais hardcodées)
-- Pas de print statements en production, utiliser `logging`
-
-## Fichiers du Projet
-- `extract.py` : script d'ingestion en cours de développement
-- `requirements.txt` : dépendances Python
+> FR10Y / FR02Y : en suspens (non disponibles via yfinance)
 
 ## Décisions en attente
-
-### FR10Y / FR02Y — Source de données pour les taux français
-**Problème :** Ces deux tickers ne sont pas disponibles via yfinance.
-**Options identifiées :**
-1. API Banque de France (source officielle, gratuite)
-2. Les remplacer par les équivalents US (`^TNX` pour 10 ans, `^IRX` pour 2 ans)
-3. Les exclure du pipeline pour l'instant
-
-**Statut :** À décider avant Sprint 2. Ne pas bloquer le Sprint 1 sur ce point.
+- **FR10Y/FR02Y** : API Banque de France vs exclure vs remplacer par ^TNX/^IRX → avant Sprint 4
+- **Streamlit hébergement** : VPS Hostinger vs Streamlit Cloud → à décider Sprint 3
