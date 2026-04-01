@@ -19,6 +19,20 @@ st.markdown("""
         border-radius: 6px;
         padding: 12px 16px;
     }
+    div[data-baseweb="select"] > div {
+        background-color: #1e222d !important;
+        border: 1px solid #434651 !important;
+        border-radius: 6px !important;
+        color: #d1d4dc !important;
+    }
+    div[data-baseweb="select"] > div:hover {
+        border-color: #787b86 !important;
+    }
+    div[data-baseweb="select"] span {
+        color: #d1d4dc !important;
+        font-size: 0.95rem !important;
+        font-weight: 600 !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
