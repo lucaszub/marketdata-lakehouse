@@ -28,7 +28,7 @@ def fetch_history(ticker: str, currency: str) -> pd.DataFrame | None:
         return None
     df = df.reset_index()[["Date", "Open", "High", "Low", "Close", "Volume"]]
     df.columns = ["TIMESTAMP", "OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"]
-    df["TIMESTAMP"] = pd.to_datetime(df["TIMESTAMP"]).dt.tz_localize(None)
+    df["TIMESTAMP"] = pd.to_datetime(df["TIMESTAMP"], utc=True).dt.tz_convert(None)
     df["TICKER"] = ticker
     df["CURRENCY"] = currency
     df["INGESTED_AT"] = pd.Timestamp.utcnow().replace(tzinfo=None)
