@@ -78,6 +78,7 @@ def get_conn():
         database="MARKETDATA",
         schema="ANALYTICS",
         role=os.getenv("SNOWFLAKE_ROLE"),
+        session_parameters={"PYTHON_CONNECTOR_QUERY_RESULT_FORMAT": "JSON"},
     )
 
 
